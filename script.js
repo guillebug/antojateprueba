@@ -31,10 +31,10 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 // Objetivo: guardar solo el correo para avisar cuando la app esté lista.
 // ══════════════════════════════════════
 
-// Pega aquí la URL del servicio que guardará los correos.
-// Mientras esté vacía, el formulario abre el correo del visitante
-// con un mensaje listo para enviar.
-const WAITLIST_ENDPOINT = '';
+// Los correos se envían a nuestra función en Vercel (carpeta /api),
+// que los guarda en Brevo de forma segura.
+// Si se deja vacío, el formulario abre el correo del visitante.
+const WAITLIST_ENDPOINT = '/api/lista-espera';
 const WAITLIST_FALLBACK_EMAIL = 'hola.antojate@gmail.com';
 
 // Textos del modal según la tienda que se tocó
@@ -158,6 +158,10 @@ if (waitlistForm) {
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ email, plataforma })
       });
+      if (res.status === 429) {
+        msg.textContent = 'Hiciste varios intentos seguidos. Espera unos minutos y vuelve a intentarlo.';
+        return;
+      }
       if (!res.ok) throw new Error(res.status);
       input.value = '';
       formWrap.hidden = true;
