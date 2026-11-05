@@ -27,25 +27,54 @@ const observer = new IntersectionObserver(entries => {
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
 // ══════════════════════════════════════
-// MODALES (beta Google Play + lista iOS)
+// LISTA DE ESPERA (Android + iOS)
+// Objetivo: guardar solo el correo para avisar cuando la app esté lista.
 // ══════════════════════════════════════
 
-// Pega aquí la URL de tu formulario (por ejemplo, de Formspree:
-// "https://formspree.io/f/xxxxxxx"). Mientras esté vacía, el formulario
-// abre el correo del visitante con un mensaje listo para enviar.
+// Pega aquí la URL del servicio que guardará los correos.
+// Mientras esté vacía, el formulario abre el correo del visitante
+// con un mensaje listo para enviar.
 const WAITLIST_ENDPOINT = '';
 const WAITLIST_FALLBACK_EMAIL = 'hola.antojate@gmail.com';
 
+// Textos del modal según la tienda que se tocó
+const TEXTOS_PLATAFORMA = {
+  Android: {
+    pill: 'Beta en curso',
+    titulo: 'Muy pronto en <em>Google Play</em>',
+    texto: 'Estamos en etapa beta. Déjanos tu correo y te avisamos apenas se habilite la descarga.',
+    listo: 'Te avisaremos a tu correo apenas Antójate esté disponible en Google Play.'
+  },
+  iOS: {
+    pill: 'Próximamente en iOS',
+    titulo: '¿Usas <em>iPhone</em>?',
+    texto: 'Estamos preparando la versión para iOS. Déjanos tu correo y te avisamos apenas esté disponible.',
+    listo: 'Te avisaremos a tu correo apenas Antójate llegue al App Store.'
+  }
+};
+
 let lastFocused = null;
 
-function openModal(id) {
+function openModal(id, plataforma) {
   const modal = document.getElementById(id);
   if (!modal) return;
+  if (plataforma && TEXTOS_PLATAFORMA[plataforma]) {
+    const t = TEXTOS_PLATAFORMA[plataforma];
+    modal.querySelectorAll('[data-texto]').forEach(el => { el.innerHTML = t[el.dataset.texto]; });
+    const campo = modal.querySelector('#waitlist-plataforma');
+    if (campo) campo.value = plataforma;
+    // Volver a mostrar el formulario si antes se completó
+    const wrap = modal.querySelector('.waitlist-form-wrap');
+    const done = modal.querySelector('.waitlist-done');
+    if (wrap && done) { wrap.hidden = false; done.hidden = true; }
+    const msg = modal.querySelector('#waitlist-msg');
+    if (msg) msg.textContent = '';
+  }
   lastFocused = document.activeElement;
   modal.hidden = false;
   modal.classList.remove('closing');
   document.body.classList.add('modal-open');
-  const first = modal.querySelector('input[type="email"]:not([disabled])') || modal.querySelector('.modal-btn');
+  const first = modal.querySelector('input[type="email"]') || modal.querySelector('.modal-btn');
   setTimeout(() => first && first.focus(), 60);
 }
 
@@ -63,7 +92,7 @@ function closeModal(modal) {
 document.querySelectorAll('[data-modal-open]').forEach(btn => {
   btn.addEventListener('click', e => {
     e.preventDefault();
-    openModal(btn.dataset.modalOpen);
+    openModal(btn.dataset.modalOpen, btn.dataset.plataforma);
   });
 });
 
@@ -74,7 +103,7 @@ document.querySelectorAll('.modal').forEach(modal => {
   // Mantener el foco dentro del modal con Tab
   modal.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
-    const items = [...modal.querySelectorAll('button, input:not(.hp-field)')].filter(el => el.offsetParent !== null);
+    const items = [...modal.querySelectorAll('button, input:not(.hp-field):not([type="hidden"])')].filter(el => el.offsetParent !== null);
     if (!items.length) return;
     const first = items[0], last = items[items.length - 1];
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -86,10 +115,11 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeModal(document.querySelector('.modal:not([hidden])'));
 });
 
-// Formulario de lista de espera iOS
+// Formulario de lista de espera
 const waitlistForm = document.getElementById('waitlist-form');
 if (waitlistForm) {
   const input = waitlistForm.querySelector('input[type="email"]');
+  const plataformaInput = waitlistForm.querySelector('#waitlist-plataforma');
   const msg = document.getElementById('waitlist-msg');
   const submitBtn = waitlistForm.querySelector('button[type="submit"]');
   const modal = waitlistForm.closest('.modal');
@@ -102,6 +132,7 @@ if (waitlistForm) {
   waitlistForm.addEventListener('submit', async e => {
     e.preventDefault();
     const email = input.value.trim();
+    const plataforma = plataformaInput.value;
     if (!emailOk(email)) {
       input.classList.add('invalid');
       msg.textContent = 'Revisa tu correo, parece que falta algo.';
@@ -112,8 +143,9 @@ if (waitlistForm) {
 
     // Sin servicio configurado: abrir el correo del visitante
     if (!WAITLIST_ENDPOINT) {
-      const subject = encodeURIComponent('Quiero Antójate en iOS');
-      const body = encodeURIComponent('Hola, avísenme cuando Antójate esté disponible en iPhone.\nMi correo: ' + email);
+      const tienda = plataforma === 'iOS' ? 'iPhone (App Store)' : 'Android (Google Play)';
+      const subject = encodeURIComponent('Avísenme cuando Antójate esté lista');
+      const body = encodeURIComponent('Hola, avísenme cuando Antójate esté disponible en ' + tienda + '.\nMi correo: ' + email);
       window.location.href = `mailto:${WAITLIST_FALLBACK_EMAIL}?subject=${subject}&body=${body}`;
       return;
     }
@@ -124,9 +156,10 @@ if (waitlistForm) {
       const res = await fetch(WAITLIST_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email, plataforma: 'iOS', origen: 'antojate.cl' })
+        body: JSON.stringify({ email, plataforma })
       });
       if (!res.ok) throw new Error(res.status);
+      input.value = '';
       formWrap.hidden = true;
       done.hidden = false;
       done.querySelector('.modal-btn').focus();
