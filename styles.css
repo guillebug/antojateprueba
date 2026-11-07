@@ -718,7 +718,13 @@ nav.scrolled { padding-bottom: 1.05rem; }
   display: inline-flex; align-items: center; gap: 8px;
   font-size: 0.85rem; color: var(--gray-text);
 }
-.hero-benefits svg { color: #0c8c3f; flex-shrink: 0; }
+.hero-benefits li { gap: 10px; }
+.hb-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: var(--green-soft); color: #0c8c3f;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
 
 /* ══════════════════════════════════════
    CÓMO FUNCIONA: teléfono fijo que cambia al bajar
