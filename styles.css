@@ -186,14 +186,19 @@ nav.scrolled {
   font-weight: 300; max-width: 400px;
 }
 .step-detail {
-  margin-top: 2rem; display: flex; flex-direction: column; gap: 0.8rem;
+  margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem;
 }
 .step-pill {
-  display: inline-flex; align-items: center; gap: 10px;
-  background: var(--gray); border-radius: 50px; padding: 0.55rem 1rem;
-  font-size: 0.82rem; color: var(--black); width: fit-content;
+  display: flex; align-items: center; gap: 14px;
+  font-size: 0.92rem; color: var(--black);
 }
-.step-pill-icon { font-size: 1rem; }
+.step-pill-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: var(--green-soft); color: #0c8c3f;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.step-pill-icon svg { width: 19px; height: 19px; }
 
 /* PHONE FRAME */
 .phone-showcase {
@@ -471,8 +476,10 @@ footer {
   .step-label { font-size: 0.68rem; }
   .step-heading { font-size: 1.8rem; }
   .step-body { font-size: 0.92rem; }
-  .step-detail { gap: 0.6rem; }
-  .step-pill { font-size: 0.78rem; padding: 0.45rem 0.9rem; }
+  .step-detail { gap: 0.8rem; }
+  .step-pill { font-size: 0.88rem; gap: 12px; }
+  .step-pill-icon { width: 36px; height: 36px; border-radius: 10px; }
+  .step-pill-icon svg { width: 17px; height: 17px; }
 
   /* Phone mockup — smaller on mobile */
   .phone-outer { transform: none !important; }
