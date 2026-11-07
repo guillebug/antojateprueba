@@ -8,17 +8,22 @@ window.addEventListener('scroll', () => {
   }
 }, { passive: true });
 
-// Custom cursor
-const cursor = document.getElementById('cursor');
-const ring = document.getElementById('cursor-ring');
-let mx = 0, my = 0, rx = 0, ry = 0;
-document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; cursor.style.left = mx+'px'; cursor.style.top = my+'px'; });
-function animRing() { rx += (mx-rx)*0.12; ry += (my-ry)*0.12; ring.style.left = rx+'px'; ring.style.top = ry+'px'; requestAnimationFrame(animRing); }
-animRing();
-document.querySelectorAll('a, button, .feat-item, .gallery-item').forEach(el => {
-  el.addEventListener('mouseenter', () => { cursor.classList.add('hover'); ring.classList.add('hover'); });
-  el.addEventListener('mouseleave', () => { cursor.classList.remove('hover'); ring.classList.remove('hover'); });
-});
+// Cómo funciona: cambia la pantalla del teléfono según el paso visible
+const flow = document.querySelector('.flow');
+if (flow) {
+  const pasos = flow.querySelectorAll('.flow-step');
+  const obsPasos = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        pasos.forEach(p => p.classList.remove('is-active'));
+        e.target.classList.add('is-active');
+        flow.dataset.active = e.target.dataset.step;
+      }
+    });
+  }, { rootMargin: '-45% 0px -45% 0px' });
+  pasos.forEach(p => obsPasos.observe(p));
+  pasos[0].classList.add('is-active');
+}
 
 // Scroll reveal
 const observer = new IntersectionObserver(entries => {
