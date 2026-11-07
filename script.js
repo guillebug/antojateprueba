@@ -16,7 +16,7 @@ if (flow) {
     entries.forEach(e => {
       if (e.isIntersecting) {
         pasos.forEach(p => p.classList.remove('is-active'));
-        e.target.classList.add('is-active');
+        e.target.classList.add('is-active', 'ya-visto');
         flow.dataset.active = e.target.dataset.step;
       }
     });
@@ -34,6 +34,8 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 // ══════════════════════════════════════
 // LISTA DE ESPERA (Android + iOS)
 // Objetivo: guardar solo el correo para avisar cuando la app esté lista.
+// Hay 3 formas de inscribirse: el formulario de la portada,
+// los botones de las tiendas y la barra fija en celular.
 // ══════════════════════════════════════
 
 // Los correos se envían a nuestra función en Vercel (carpeta /api),
@@ -42,7 +44,9 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 const WAITLIST_ENDPOINT = '/api/lista-espera';
 const WAITLIST_FALLBACK_EMAIL = 'hola.antojate@gmail.com';
 
-// Textos del modal según la tienda que se tocó
+const TIENDA = { Android: 'Google Play', iOS: 'el App Store' };
+
+// Textos del modal según la tienda elegida
 const TEXTOS_PLATAFORMA = {
   Android: {
     pill: 'Beta en curso',
@@ -58,23 +62,125 @@ const TEXTOS_PLATAFORMA = {
   }
 };
 
+// Recordar (solo en este navegador) si ya se inscribió o cerró la barra
+const memoria = {
+  leer(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+
+const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+
+// Envía el correo. Devuelve 'ok', 'limite', 'error' o 'mailto'.
+async function enviarALista(email, plataforma) {
+  if (!WAITLIST_ENDPOINT) {
+    const tienda = plataforma === 'iOS' ? 'iPhone (App Store)' : 'Android (Google Play)';
+    const subject = encodeURIComponent('Avísenme cuando Antójate esté lista');
+    const body = encodeURIComponent('Hola, avísenme cuando Antójate esté disponible en ' + tienda + '.\nMi correo: ' + email);
+    window.location.href = `mailto:${WAITLIST_FALLBACK_EMAIL}?subject=${subject}&body=${body}`;
+    return 'mailto';
+  }
+  try {
+    const res = await fetch(WAITLIST_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ email, plataforma })
+    });
+    if (res.status === 429) return 'limite';
+    return res.ok ? 'ok' : 'error';
+  } catch (e) {
+    return 'error';
+  }
+}
+
+const MENSAJES = {
+  invalido: 'Revisa tu correo, parece que falta algo.',
+  limite: 'Hiciste varios intentos seguidos. Espera unos minutos y vuelve a intentarlo.',
+  error: 'No pudimos guardar tu correo. Inténtalo de nuevo en un momento.'
+};
+
+// Conecta un formulario (portada o modal) con el envío
+function conectarFormulario(form, alTerminar) {
+  const input = form.querySelector('input[type="email"]');
+  const msg = form.parentElement.querySelector('.lista-msg');
+  const btn = form.querySelector('button[type="submit"]');
+  const textoBtn = btn.innerHTML;
+  input.addEventListener('input', () => { input.classList.remove('invalid'); if (msg) msg.textContent = ''; });
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = input.value.trim();
+    const plataforma = (form.querySelector('input[name="plataforma"]:checked') || {}).value || 'Android';
+    if (!emailOk(email)) {
+      input.classList.add('invalid');
+      if (msg) msg.textContent = MENSAJES.invalido;
+      input.focus();
+      return;
+    }
+    if (form.querySelector('.hp-field').value) return; // bot
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+    const r = await enviarALista(email, plataforma);
+    btn.disabled = false;
+    btn.innerHTML = textoBtn;
+    if (r === 'ok') {
+      input.value = '';
+      memoria.guardar('antojate_lista', plataforma);
+      ocultarBarra();
+      alTerminar(plataforma);
+      document.dispatchEvent(new CustomEvent('lista:inscrito', { detail: plataforma }));
+    } else if (r !== 'mailto' && msg) {
+      msg.textContent = MENSAJES[r];
+    }
+  });
+}
+
+// ── Formulario de la portada
+const heroForm = document.getElementById('unirme');
+if (heroForm) {
+  const done = heroForm.parentElement.querySelector('.hero-form-done');
+  const mostrarListo = plataforma => {
+    done.querySelector('[data-tienda]').textContent = TIENDA[plataforma] || 'Google Play';
+    heroForm.hidden = true;
+    done.hidden = false;
+  };
+  conectarFormulario(heroForm, mostrarListo);
+  // Si se inscribió desde otro lugar (modal o barra), la portada también lo muestra
+  document.addEventListener('lista:inscrito', e => mostrarListo(e.detail));
+  const ya = memoria.leer('antojate_lista');
+  if (ya) mostrarListo(ya);
+}
+
+// El botón de arriba lleva al formulario de la portada
+document.querySelectorAll('[data-ir-formulario]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const campo = document.getElementById('hero-email');
+    if (campo && !heroForm.hidden) setTimeout(() => campo.focus({ preventScroll: true }), 450);
+  });
+});
+
+// ── Modal (botones de las tiendas y barra del celular)
 let lastFocused = null;
+const modalLista = document.getElementById('modal-lista');
+
+function aplicarTextos(modal, plataforma) {
+  const t = TEXTOS_PLATAFORMA[plataforma] || TEXTOS_PLATAFORMA.Android;
+  modal.querySelectorAll('[data-texto]').forEach(el => { el.innerHTML = t[el.dataset.texto]; });
+}
 
 function openModal(id, plataforma) {
   const modal = document.getElementById(id);
   if (!modal) return;
-  if (plataforma && TEXTOS_PLATAFORMA[plataforma]) {
-    const t = TEXTOS_PLATAFORMA[plataforma];
-    modal.querySelectorAll('[data-texto]').forEach(el => { el.innerHTML = t[el.dataset.texto]; });
-    const campo = modal.querySelector('#waitlist-plataforma');
-    if (campo) campo.value = plataforma;
-    // Volver a mostrar el formulario si antes se completó
-    const wrap = modal.querySelector('.waitlist-form-wrap');
-    const done = modal.querySelector('.waitlist-done');
-    if (wrap && done) { wrap.hidden = false; done.hidden = true; }
-    const msg = modal.querySelector('#waitlist-msg');
-    if (msg) msg.textContent = '';
-  }
+  plataforma = TEXTOS_PLATAFORMA[plataforma] ? plataforma : 'Android';
+  const radio = modal.querySelector(`input[name="plataforma"][value="${plataforma}"]`);
+  if (radio) radio.checked = true;
+  aplicarTextos(modal, plataforma);
+  const wrap = modal.querySelector('.waitlist-form-wrap');
+  const done = modal.querySelector('.waitlist-done');
+  if (wrap && done) { wrap.hidden = false; done.hidden = true; }
+  const msg = modal.querySelector('.lista-msg');
+  if (msg) msg.textContent = '';
   lastFocused = document.activeElement;
   modal.hidden = false;
   modal.classList.remove('closing');
@@ -105,10 +211,14 @@ document.querySelectorAll('.modal').forEach(modal => {
   modal.querySelectorAll('[data-modal-close]').forEach(el => {
     el.addEventListener('click', () => closeModal(modal));
   });
+  // Al cambiar Android/iPhone dentro del modal, cambian los textos
+  modal.querySelectorAll('input[name="plataforma"]').forEach(r => {
+    r.addEventListener('change', () => aplicarTextos(modal, r.value));
+  });
   // Mantener el foco dentro del modal con Tab
   modal.addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
-    const items = [...modal.querySelectorAll('button, input:not(.hp-field):not([type="hidden"])')].filter(el => el.offsetParent !== null);
+    const items = [...modal.querySelectorAll('button, input:not(.hp-field)')].filter(el => el.offsetParent !== null);
     if (!items.length) return;
     const first = items[0], last = items[items.length - 1];
     if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -120,63 +230,45 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeModal(document.querySelector('.modal:not([hidden])'));
 });
 
-// Formulario de lista de espera
-const waitlistForm = document.getElementById('waitlist-form');
-if (waitlistForm) {
-  const input = waitlistForm.querySelector('input[type="email"]');
-  const plataformaInput = waitlistForm.querySelector('#waitlist-plataforma');
-  const msg = document.getElementById('waitlist-msg');
-  const submitBtn = waitlistForm.querySelector('button[type="submit"]');
-  const modal = waitlistForm.closest('.modal');
-  const formWrap = modal.querySelector('.waitlist-form-wrap');
-  const done = modal.querySelector('.waitlist-done');
-  const emailOk = v => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v);
+const modalForm = document.getElementById('waitlist-form');
+if (modalForm && modalLista) {
+  conectarFormulario(modalForm, plataforma => {
+    aplicarTextos(modalLista, plataforma);
+    modalLista.querySelector('.waitlist-form-wrap').hidden = true;
+    const done = modalLista.querySelector('.waitlist-done');
+    done.hidden = false;
+    done.querySelector('.modal-btn').focus();
+  });
+}
 
-  input.addEventListener('input', () => { input.classList.remove('invalid'); msg.textContent = ''; });
+// ── Barra fija en celular: aparece al pasar la portada
+const barra = document.querySelector('.beta-bar');
+let heroVisible = true, finalVisible = false;
 
-  waitlistForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const email = input.value.trim();
-    const plataforma = plataformaInput.value;
-    if (!emailOk(email)) {
-      input.classList.add('invalid');
-      msg.textContent = 'Revisa tu correo, parece que falta algo.';
-      input.focus();
-      return;
-    }
-    if (waitlistForm.querySelector('.hp-field').value) return; // bot
-
-    // Sin servicio configurado: abrir el correo del visitante
-    if (!WAITLIST_ENDPOINT) {
-      const tienda = plataforma === 'iOS' ? 'iPhone (App Store)' : 'Android (Google Play)';
-      const subject = encodeURIComponent('Avísenme cuando Antójate esté lista');
-      const body = encodeURIComponent('Hola, avísenme cuando Antójate esté disponible en ' + tienda + '.\nMi correo: ' + email);
-      window.location.href = `mailto:${WAITLIST_FALLBACK_EMAIL}?subject=${subject}&body=${body}`;
-      return;
-    }
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Enviando…';
-    try {
-      const res = await fetch(WAITLIST_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email, plataforma })
-      });
-      if (res.status === 429) {
-        msg.textContent = 'Hiciste varios intentos seguidos. Espera unos minutos y vuelve a intentarlo.';
-        return;
-      }
-      if (!res.ok) throw new Error(res.status);
-      input.value = '';
-      formWrap.hidden = true;
-      done.hidden = false;
-      done.querySelector('.modal-btn').focus();
-    } catch (err) {
-      msg.textContent = 'No pudimos guardar tu correo. Inténtalo de nuevo en un momento.';
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Avísame';
-    }
+function ocultarBarra() {
+  if (barra) barra.classList.remove('is-visible');
+}
+function actualizarBarra() {
+  if (!barra) return;
+  const descartada = memoria.leer('antojate_barra_cerrada') || memoria.leer('antojate_lista');
+  const mostrar = !descartada && !heroVisible && !finalVisible;
+  barra.hidden = false;
+  barra.classList.toggle('is-visible', mostrar);
+}
+if (barra) {
+  const hero = document.querySelector('.hero');
+  const final = document.getElementById('descargar');
+  const obsBarra = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.target === hero) heroVisible = e.isIntersecting;
+      if (e.target === final) finalVisible = e.isIntersecting;
+    });
+    actualizarBarra();
+  });
+  if (hero) obsBarra.observe(hero);
+  if (final) obsBarra.observe(final);
+  barra.querySelector('.beta-bar-close').addEventListener('click', () => {
+    memoria.guardar('antojate_barra_cerrada', '1');
+    ocultarBarra();
   });
 }

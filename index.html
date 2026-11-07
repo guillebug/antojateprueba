@@ -55,7 +55,7 @@
       <a href="#descargar">Descargar</a>
     </div>
 
-    <a href="#descargar" class="nav-dl">Unirme a la lista <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+    <a href="#unirme" class="nav-dl" data-ir-formulario>Unirme a la lista <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
   </div>
 </nav>
 
@@ -74,11 +74,26 @@
     Antójate detecta tus ingredientes con inteligencia artificial y genera recetas deliciosas con lo que ya tienes en casa.
   </p>
   <div class="hero-cta">
-    <a href="#descargar" class="btn-main">
-      Avísame cuando esté lista
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    </a>
-    <a href="#como-funciona" class="btn-ghost">Ver cómo funciona <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></a>
+    <form class="lista-form hero-form" id="unirme" novalidate>
+      <p class="hero-form-label">¿Qué teléfono usas?</p>
+      <div class="plat-toggle" role="radiogroup" aria-label="¿Qué teléfono usas?">
+        <label><input type="radio" name="plataforma" value="Android" checked><span>Android</span></label>
+        <label><input type="radio" name="plataforma" value="iOS"><span>iPhone</span></label>
+      </div>
+      <div class="hero-form-row">
+        <label class="sr-only" for="hero-email">Correo electrónico</label>
+        <input type="email" id="hero-email" name="email" placeholder="tucorreo@ejemplo.com" autocomplete="email" required>
+        <input type="text" name="_gotcha" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <button type="submit" class="btn-main">Avísame <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+      </div>
+      <p class="lista-msg" role="status" aria-live="polite"></p>
+      <p class="hero-form-fine">Gratis · Solo te escribiremos para avisarte del lanzamiento.</p>
+    </form>
+    <div class="hero-form-done" hidden>
+      <span class="done-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+      <p><strong>¡Quedaste en la lista!</strong> Te avisaremos apenas Antójate esté disponible en <span data-tienda>Google Play</span>.</p>
+    </div>
+    <a href="#como-funciona" class="hero-link">Ver cómo funciona <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg></a>
   </div>
 
   <ul class="hero-benefits">
@@ -280,14 +295,17 @@
     <div class="waitlist-form-wrap">
       <h3 class="modal-title" id="modal-lista-title" data-texto="titulo">Muy pronto en <em>Google Play</em></h3>
       <p class="modal-text" data-texto="texto">Estamos en etapa beta. Déjanos tu correo y te avisamos apenas se habilite la descarga.</p>
-      <form class="waitlist-form" id="waitlist-form" novalidate>
+      <form class="waitlist-form lista-form" id="waitlist-form" novalidate>
+        <div class="plat-toggle" role="radiogroup" aria-label="¿Qué teléfono usas?">
+        <label><input type="radio" name="plataforma" value="Android" checked><span>Android</span></label>
+        <label><input type="radio" name="plataforma" value="iOS"><span>iPhone</span></label>
+      </div>
         <label class="sr-only" for="waitlist-email">Correo electrónico</label>
         <input type="email" id="waitlist-email" name="email" placeholder="tucorreo@ejemplo.com" autocomplete="email" required>
-        <input type="hidden" name="plataforma" id="waitlist-plataforma" value="Android">
         <input type="text" name="_gotcha" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true">
         <button type="submit" class="modal-btn">Avísame</button>
       </form>
-      <p class="waitlist-msg" id="waitlist-msg" role="status" aria-live="polite"></p>
+      <p class="waitlist-msg lista-msg" id="waitlist-msg" role="status" aria-live="polite"></p>
       <p class="modal-fine">Solo usaremos tu correo para avisarte cuando la app esté lista. Nada más.</p>
     </div>
 
@@ -300,6 +318,16 @@
       <button type="button" class="modal-btn" data-modal-close>Cerrar</button>
     </div>
   </div>
+</div>
+
+<!-- BARRA FIJA EN CELULAR -->
+<div class="beta-bar" hidden>
+  <span class="beta-bar-dot" aria-hidden="true"></span>
+  <p class="beta-bar-text"><strong>Antójate está en beta</strong><span>Te avisamos cuando esté lista</span></p>
+  <button type="button" class="beta-bar-btn" data-modal-open="modal-lista" data-plataforma="Android">Avísame</button>
+  <button type="button" class="beta-bar-close" aria-label="Cerrar aviso">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
 </div>
 
 <script src="script.js"></script>
